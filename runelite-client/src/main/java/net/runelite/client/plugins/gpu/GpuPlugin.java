@@ -532,7 +532,6 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 	private void initProgram() throws ShaderException
 	{
-<<<<<<< HEAD
 //		glProgram = gl.glCreateProgram();
 //		glVertexShader = gl.glCreateShader(gl.GL_VERTEX_SHADER);
 //		glGeomShader = gl.glCreateShader(gl.GL_GEOMETRY_SHADER);
@@ -580,62 +579,64 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 //			source,
 //			fragSource);
 //
-=======
-		glProgram = gl.glCreateProgram();
-		glVertexShader = gl.glCreateShader(gl.GL_VERTEX_SHADER);
-		glGeomShader = gl.glCreateShader(gl.GL_GEOMETRY_SHADER);
-		glFragmentShader = gl.glCreateShader(gl.GL_FRAGMENT_SHADER);
 
-		final String glVersionHeader;
+		// TODO: start of my code
+//		glProgram = gl.glCreateProgram();
+//		glVertexShader = gl.glCreateShader(gl.GL_VERTEX_SHADER);
+//		glGeomShader = gl.glCreateShader(gl.GL_GEOMETRY_SHADER);
+//		glFragmentShader = gl.glCreateShader(gl.GL_FRAGMENT_SHADER);
+//
+//		final String glVersionHeader;
+//
+//		if (OSType.getOSType() == OSType.Linux)
+//		{
+//			glVersionHeader =
+//				"#version 420\n" +
+//				"#extension GL_ARB_compute_shader : require\n" +
+//				"#extension GL_ARB_shader_storage_buffer_object : require\n";
+//		}
+////		TODO: add mac as an option here
+//		else if (OSType.getOSType() == OSType.MacOS)
+//		{
+//			glVersionHeader = "#version 410\n";
+//		}
+//		else
+//		{
+//			glVersionHeader = "#version 430\n";
+//		}
+//
+//		Function<String, String> resourceLoader = (s) ->
+//		{
+//			if (s.endsWith(".glsl"))
+//			{
+//				return inputStreamToString(getClass().getResourceAsStream(s));
+//			}
+//
+//			if (s.equals("version_header"))
+//			{
+//				return glVersionHeader;
+//			}
+//
+//			return "";
+//		};
+//
+//		Template template = new Template(resourceLoader);
+//		String source = template.process(resourceLoader.apply("geom.glsl"));
+//
+//		template = new Template(resourceLoader);
+//		String vertSource = template.process(resourceLoader.apply("vert.glsl"));
+//
+//		template = new Template(resourceLoader);
+//		String fragSource = template.process(resourceLoader.apply("frag.glsl"));
+//
+//		GLUtil.loadShaders(gl, glProgram, glVertexShader, glGeomShader, glFragmentShader,
+//			vertSource,
+//			source,
+//			fragSource);
 
-		if (OSType.getOSType() == OSType.Linux)
-		{
-			glVersionHeader =
-				"#version 420\n" +
-				"#extension GL_ARB_compute_shader : require\n" +
-				"#extension GL_ARB_shader_storage_buffer_object : require\n";
-		}
-//		TODO: add mac as an option here
-		else if (OSType.getOSType() == OSType.MacOS)
-		{
-			glVersionHeader = "#version 410\n";
-		}
-		else
-		{
-			glVersionHeader = "#version 430\n";
-		}
-
-		Function<String, String> resourceLoader = (s) ->
-		{
-			if (s.endsWith(".glsl"))
-			{
-				return inputStreamToString(getClass().getResourceAsStream(s));
-			}
-
-			if (s.equals("version_header"))
-			{
-				return glVersionHeader;
-			}
-
-			return "";
-		};
-
-		Template template = new Template(resourceLoader);
-		String source = template.process(resourceLoader.apply("geom.glsl"));
-
-		template = new Template(resourceLoader);
-		String vertSource = template.process(resourceLoader.apply("vert.glsl"));
-
-		template = new Template(resourceLoader);
-		String fragSource = template.process(resourceLoader.apply("frag.glsl"));
-
-		GLUtil.loadShaders(gl, glProgram, glVertexShader, glGeomShader, glFragmentShader,
-			vertSource,
-			source,
-			fragSource);
+//		TODO: end of my code
 
 //		TODO: Deal with all of these compute shaders
->>>>>>> 412346e15de18cbc89e5f2e2ae5e56366bb78100
 //		glComputeProgram = gl.glCreateProgram();
 //		glComputeShader = gl.glCreateShader(gl.GL_COMPUTE_SHADER);
 //		template = new Template(resourceLoader);
@@ -969,7 +970,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 		final int viewportHeight = client.getViewportHeight();
 		final int viewportWidth = client.getViewportWidth();
-<<<<<<< HEAD
+
 //
 //		// If the viewport has changed, update the projection matrix
 //		if (viewportWidth > 0 && viewportHeight > 0 && (viewportWidth != lastViewportWidth || viewportHeight != lastViewportHeight))
@@ -1317,7 +1318,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		final int[] pixels = bufferProvider.getPixels();
 		final int width = bufferProvider.getWidth();
 		final int height = bufferProvider.getHeight();
-		
+
 		gl.glEnable(gl.GL_BLEND);
 
 		vertexBuffer.clear(); // reuse vertex buffer for interface
