@@ -34,6 +34,8 @@ import com.jogamp.nativewindow.awt.AWTGraphicsConfiguration;
 import com.jogamp.nativewindow.awt.AWTGraphicsDevice;
 import com.jogamp.nativewindow.awt.AWTGraphicsScreen;
 import com.jogamp.nativewindow.awt.JAWTWindow;
+import com.jogamp.opencl.*;
+import com.jogamp.opencl.util.CLPlatformFilters;
 import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.GLCapabilities;
@@ -79,6 +81,9 @@ import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.plugins.PluginInstantiationException;
 import net.runelite.client.plugins.PluginManager;
+
+import static com.jogamp.common.nio.Buffers.SIZEOF_FLOAT;
+import static com.jogamp.opencl.CLDevice.Type.GPU;
 import static net.runelite.client.plugins.gpu.GLUtil.glDeleteBuffer;
 import static net.runelite.client.plugins.gpu.GLUtil.glDeleteTexture;
 import static net.runelite.client.plugins.gpu.GLUtil.glDeleteVertexArrays;
@@ -88,6 +93,18 @@ import static net.runelite.client.plugins.gpu.GLUtil.glGenVertexArrays;
 import static net.runelite.client.plugins.gpu.GLUtil.inputStreamToString;
 import net.runelite.client.ui.DrawManager;
 
+import com.jogamp.opencl.gl.CLGLBuffer;
+import com.jogamp.opencl.gl.CLGLContext;
+import com.jogamp.opengl.util.Animator;
+import java.io.IOException;
+import com.jogamp.opengl.DebugGL2;
+import com.jogamp.opengl.GL2;
+import com.jogamp.opengl.GLAutoDrawable;
+import com.jogamp.opengl.GLCapabilities;
+import com.jogamp.opengl.GLEventListener;
+import com.jogamp.opengl.GLProfile;
+import com.jogamp.opengl.awt.GLCanvas;
+import com.jogamp.opengl.glu.gl2.GLUgl2;
 import static net.runelite.client.plugins.gpu.GLUtil.*;
 import jogamp.nativewindow.SurfaceScaleUtils;
 import java.awt.geom.AffineTransform;
@@ -135,6 +152,12 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	private GL4 gl;
 	private GLContext glContext;
 	private GLDrawable glDrawable;
+
+	private CLGLContext clContext;
+	private CLKernel kernel;
+	private CLCommandQueue commandQueue;
+	private CLGLBuffer<?> clBuffer;
+
 	//
 ////	private int glProgram;
 ////	private int glVertexShader;
@@ -259,6 +282,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 //
 				canvas = client.getCanvas();
 				canvas.setIgnoreRepaint(true);
+
 //
 //				if (log.isDebugEnabled())
 //				{
@@ -326,6 +350,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 							GLDrawableFactory glDrawableFactory = GLDrawableFactory.getFactory(glProfile);
 							glDrawable = glDrawableFactory.createGLDrawable(jawtWindow);
 							glContext = glDrawable.createContext(null);
+
 							jawtWindow.getCurrentSurfaceScale(hasPixelScale);
 						}
 						finally
@@ -340,6 +365,12 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 							throw new GLException("Unable to make context current");
 						}
 
+
+						// create OpenCL context before creating any OpenGL objects
+						// you want to share with OpenCL (AMD driver requirement)
+						clContext = CLGLContext.create(glContext);
+
+						// OpenGL initialization
 						gl = glContext.getGL().getGL4();
 						gl.setSwapInterval(0);
 
@@ -347,6 +378,56 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 						initProgram();
 						initInterfaceTexture();
 						initUniformBuffer();
+
+//						Initialize OpenCL
+						// TODO: replace this with the initCL() function
+						CLProgram program;
+						try
+						{
+							program = clContext.createProgram(getClass().getResourceAsStream("add_numbers.cl"));
+							program.build();
+							System.out.println(program.getBuildStatus());
+							System.out.println(program.isExecutable());
+							System.out.println(program.getBuildLog());
+						}
+						catch (IOException ex)
+						{
+							throw new RuntimeException("can not handle exception", ex);
+						}
+
+						// Set up a gl buffer to use with the kernel
+						int mySize = 64;
+						int myBuff = glGenBuffers(gl);
+						gl.glBindBuffer(GL4.GL_ARRAY_BUFFER, myBuff);
+						FloatBuffer myRealBuff = GpuFloatBuffer.allocateDirect(mySize);
+						gl.glBufferData(gl.GL_ARRAY_BUFFER, myRealBuff.capacity() * Float.BYTES, myRealBuff, gl.GL_DYNAMIC_DRAW);
+
+
+//						TODO: add a check to ensure that this device has memory sharing enabled
+//						TODO: for some reason this picks the intel integrated over the radeon pro 560
+//						Radeon reports 16 compute units, but it has 1024 stream processors
+
+						// Initialize openCL
+						commandQueue = clContext.getMaxFlopsDevice().createCommandQueue();
+
+						clBuffer = clContext.createFromGLBuffer(myBuff,
+								mySize * Float.BYTES /* gl.glGetBufferSize(glObjects[VERTICES]*/,
+								CLGLBuffer.Mem.READ_WRITE);
+
+						System.out.println("cl buffer type: " + clBuffer.getGLObjectType());
+						System.out.println("shared with gl buffer: " + clBuffer.getGLObjectID());
+
+						kernel = program.createCLKernel("add_numbers")
+								.putArg(clBuffer)
+								.rewind();
+
+						System.out.println("cl initialised");
+
+						commandQueue.putAcquireGLObject(clBuffer)
+								.put1DRangeKernel(kernel, 0, mySize / 4, mySize / 4)
+								.putReleaseGLObject(clBuffer).finish();
+
+						System.out.println("Basic Kernel ran successfully");
 
 //						client.resizeCanvas();
 
@@ -529,6 +610,13 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	{
 		return configManager.getConfig(GpuPluginConfig.class);
 	}
+
+
+	private void initCL(GL4 gl, int bufferSize)
+	{
+
+	}
+
 
 	private void initProgram() throws ShaderException
 	{
@@ -971,6 +1059,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		final int viewportHeight = client.getViewportHeight();
 		final int viewportWidth = client.getViewportWidth();
 
+
 //
 //		// If the viewport has changed, update the projection matrix
 //		if (viewportWidth > 0 && viewportHeight > 0 && (viewportWidth != lastViewportWidth || viewportHeight != lastViewportHeight))
@@ -1158,11 +1247,11 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 ////
 ////			final Texture[] textures = textureProvider.getTextures();
 
-			int renderHeightOff = client.getViewportYOffset();
-			int renderWidthOff = client.getViewportXOffset();
-			int renderCanvasHeight = canvasHeight;
-			int renderViewportHeight = viewportHeight;
-			int renderViewportWidth = viewportWidth;
+		int renderHeightOff = client.getViewportYOffset();
+		int renderWidthOff = client.getViewportXOffset();
+		int renderCanvasHeight = canvasHeight;
+		int renderViewportHeight = viewportHeight;
+		int renderViewportWidth = viewportWidth;
 ////
 ////			if (client.isStretchedEnabled())
 ////			{
@@ -1314,7 +1403,6 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	private void drawUi(final int canvasHeight, final int canvasWidth)
 	{
 		final BufferProvider bufferProvider = client.getBufferProvider();
-		// TODO this needs to be scaled, but the buffer provider doesn't consider scale.
 		final int[] pixels = bufferProvider.getPixels();
 		final int width = bufferProvider.getWidth();
 		final int height = bufferProvider.getHeight();
@@ -1343,6 +1431,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		}
 
 		gl.glBindTexture(gl.GL_TEXTURE_2D, interfaceTexture);
+		// Fix for blurriness
 		gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST);
 
 		if (client.isStretchedEnabled())
