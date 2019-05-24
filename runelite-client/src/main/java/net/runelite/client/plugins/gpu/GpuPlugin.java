@@ -48,7 +48,9 @@ import com.jogamp.opengl.GLFBODrawable;
 import com.jogamp.opengl.GLProfile;
 import java.awt.Canvas;
 import java.awt.Dimension;
+import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
 import java.nio.ByteBuffer;
@@ -59,6 +61,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 import jogamp.nativewindow.SurfaceScaleUtils;
 import jogamp.nativewindow.macosx.OSXUtil;
+import jogamp.nativewindow.jawt.x11.X11JAWTWindow;
 import jogamp.newt.awt.NewtFactoryAWT;
 import jogamp.opengl.GLDrawableHelper;
 import jogamp.opengl.GLDrawableImpl;
@@ -91,6 +94,9 @@ import static net.runelite.client.plugins.gpu.GLUtil.glGenBuffers;
 import static net.runelite.client.plugins.gpu.GLUtil.glGenTexture;
 import static net.runelite.client.plugins.gpu.GLUtil.glGenVertexArrays;
 import static net.runelite.client.plugins.gpu.GLUtil.inputStreamToString;
+import static net.runelite.client.plugins.gpu.GLUtil.*;
+import net.runelite.client.plugins.gpu.config.AntiAliasingMode;
+import net.runelite.client.plugins.gpu.template.Template;
 import net.runelite.client.ui.DrawManager;
 
 import com.jogamp.opencl.gl.CLGLBuffer;
@@ -1372,6 +1378,21 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 //
 //		drawManager.processDrawComplete(this::screenshot);
 
+			// 	// Floor the offsets because even if the offset is 4.9, we want to render to the x=4 pixel anyway.
+			// 	renderHeightOff      = (int) Math.floor(scaleFactorY * (renderHeightOff)) - padding;
+			// 	renderWidthOff       = (int) Math.floor(scaleFactorX * (renderWidthOff )) - padding;
+			// }
+
+			// glDpiAwareViewport(renderWidthOff, renderCanvasHeight - renderViewportHeight - renderHeightOff, renderViewportWidth, renderViewportHeight);
+
+			// gl.glUseProgram(glProgram);
+
+			// final int drawDistance = Math.max(0, Math.min(MAX_DISTANCE, config.drawDistance()));
+			// final int fogDepth = config.fogDepth();
+			// gl.glUniform1i(uniUseFog, fogDepth > 0 ? 1 : 0);
+			// gl.glUniform4f(uniFogColor, (sky >> 16 & 0xFF) / 255f, (sky >> 8 & 0xFF) / 255f, (sky & 0xFF) / 255f, 1f);
+			// gl.glUniform1i(uniFogDepth, fogDepth);
+			// gl.glUniform1i(uniDrawDistance, drawDistance * Perspective.LOCAL_TILE_SIZE);
 
 //		glDpiAwareViewport(renderWidthOff, renderCanvasHeight - renderViewportHeight - renderHeightOff, renderViewportWidth, renderViewportHeight);
 		OSXUtil.RunOnMainThread(true, false, () ->
