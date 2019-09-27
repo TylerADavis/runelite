@@ -391,7 +391,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 						try
 						{
 							program = clContext.createProgram(getClass().getResourceAsStream("add_numbers.cl"));
-							program.build();
+							program = program.build();
 							System.out.println(program.getBuildStatus());
 							System.out.println(program.isExecutable());
 							System.out.println(program.getBuildLog());
@@ -406,6 +406,7 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 						int myBuff = glGenBuffers(gl);
 						gl.glBindBuffer(GL4.GL_ARRAY_BUFFER, myBuff);
 						FloatBuffer myRealBuff = GpuFloatBuffer.allocateDirect(mySize);
+						myRealBuff = myRealBuff.put(0, (float) 15.35);
 						gl.glBufferData(gl.GL_ARRAY_BUFFER, myRealBuff.capacity() * Float.BYTES, myRealBuff, gl.GL_DYNAMIC_DRAW);
 
 
@@ -414,11 +415,16 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 //						Radeon reports 16 compute units, but it has 1024 stream processors
 
 						// Initialize openCL
-						commandQueue = clContext.getMaxFlopsDevice().createCommandQueue();
+						commandQueue = clContext.getMaxFlopsDevice(GPU).createCommandQueue();
 
-						clBuffer = clContext.createFromGLBuffer(myBuff,
+
+						FloatBuffer mySecondBuff = GpuFloatBuffer.allocateDirect(mySize);
+
+						clBuffer = clContext.createFromGLBuffer(mySecondBuff, myBuff,
 								mySize * Float.BYTES /* gl.glGetBufferSize(glObjects[VERTICES]*/,
 								CLGLBuffer.Mem.READ_WRITE);
+
+//						clBuffer = clContext.createFromGLBuffer(myBuff, id[0], glData.capacity()*4, Mem.READ_ONLY))
 
 						System.out.println("cl buffer type: " + clBuffer.getGLObjectType());
 						System.out.println("shared with gl buffer: " + clBuffer.getGLObjectID());
@@ -429,10 +435,13 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 						System.out.println("cl initialised");
 
+						CLEventList my_events = new CLEventList();
 						commandQueue.putAcquireGLObject(clBuffer)
 								.put1DRangeKernel(kernel, 0, mySize / 4, mySize / 4)
+								.putReadBuffer(clBuffer, true)
 								.putReleaseGLObject(clBuffer).finish();
 
+						System.out.println(mySecondBuff.get(0));
 						System.out.println("Basic Kernel ran successfully");
 
 //						client.resizeCanvas();
