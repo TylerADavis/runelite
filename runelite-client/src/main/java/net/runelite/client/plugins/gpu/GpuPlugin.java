@@ -260,7 +260,17 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 				GLProfile glProfile = GLProfile.get(GLProfile.GL4);
 
+
 				GLCapabilities glCaps = new GLCapabilities(glProfile);
+				// This line is necessary to avoid a crash on mac
+				// TODO: can this line safely run on other systems? or should it explicitly
+				// be made mac specific?
+				if (OSType.getOSType() == OSType.MacOS)
+				{
+					glCaps.setFBO(true);
+				}
+
+
 				AWTGraphicsConfiguration config = AWTGraphicsConfiguration.create(canvas.getGraphicsConfiguration(), glCaps, glCaps);
 
 				jawtWindow = NewtFactoryAWT.getNativeWindow(canvas, config);
@@ -444,6 +454,11 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 				"#extension GL_ARB_compute_shader : require\n" +
 				"#extension GL_ARB_shader_storage_buffer_object : require\n";
 		}
+//		TODO: add mac as an option here
+		else if (OSType.getOSType() == OSType.MacOS)
+		{
+			glVersionHeader = "#version 410\n";
+		}
 		else
 		{
 			glVersionHeader = "#version 430\n";
@@ -478,23 +493,24 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 			source,
 			fragSource);
 
-		glComputeProgram = gl.glCreateProgram();
-		glComputeShader = gl.glCreateShader(gl.GL_COMPUTE_SHADER);
-		template = new Template(resourceLoader);
-		source = template.process(resourceLoader.apply("comp.glsl"));
-		GLUtil.loadComputeShader(gl, glComputeProgram, glComputeShader, source);
-
-		glSmallComputeProgram = gl.glCreateProgram();
-		glSmallComputeShader = gl.glCreateShader(gl.GL_COMPUTE_SHADER);
-		template = new Template(resourceLoader);
-		source = template.process(resourceLoader.apply("comp_small.glsl"));
-		GLUtil.loadComputeShader(gl, glSmallComputeProgram, glSmallComputeShader, source);
-
-		glUnorderedComputeProgram = gl.glCreateProgram();
-		glUnorderedComputeShader = gl.glCreateShader(gl.GL_COMPUTE_SHADER);
-		template = new Template(resourceLoader);
-		source = template.process(resourceLoader.apply("comp_unordered.glsl"));
-		GLUtil.loadComputeShader(gl, glUnorderedComputeProgram, glUnorderedComputeShader, source);
+//		TODO: Deal with all of these compute shaders
+//		glComputeProgram = gl.glCreateProgram();
+//		glComputeShader = gl.glCreateShader(gl.GL_COMPUTE_SHADER);
+//		template = new Template(resourceLoader);
+//		source = template.process(resourceLoader.apply("comp.glsl"));
+//		GLUtil.loadComputeShader(gl, glComputeProgram, glComputeShader, source);
+//
+//		glSmallComputeProgram = gl.glCreateProgram();
+//		glSmallComputeShader = gl.glCreateShader(gl.GL_COMPUTE_SHADER);
+//		template = new Template(resourceLoader);
+//		source = template.process(resourceLoader.apply("comp_small.glsl"));
+//		GLUtil.loadComputeShader(gl, glSmallComputeProgram, glSmallComputeShader, source);
+//
+//		glUnorderedComputeProgram = gl.glCreateProgram();
+//		glUnorderedComputeShader = gl.glCreateShader(gl.GL_COMPUTE_SHADER);
+//		template = new Template(resourceLoader);
+//		source = template.process(resourceLoader.apply("comp_unordered.glsl"));
+//		GLUtil.loadComputeShader(gl, glUnorderedComputeProgram, glUnorderedComputeShader, source);
 
 		glUiProgram = gl.glCreateProgram();
 		glUiVertexShader = gl.glCreateShader(gl.GL_VERTEX_SHADER);
@@ -521,8 +537,9 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		uniTextures = gl.glGetUniformLocation(glProgram, "textures");
 		uniTextureOffsets = gl.glGetUniformLocation(glProgram, "textureOffsets");
 
-		uniBlockSmall = gl.glGetUniformBlockIndex(glSmallComputeProgram, "uniforms");
-		uniBlockLarge = gl.glGetUniformBlockIndex(glComputeProgram, "uniforms");
+//		TODO: Deal with these
+//		uniBlockSmall = gl.glGetUniformBlockIndex(glSmallComputeProgram, "uniforms");
+//		uniBlockLarge = gl.glGetUniformBlockIndex(glComputeProgram, "uniforms");
 		uniBlockMain = gl.glGetUniformBlockIndex(glProgram, "uniforms");
 	}
 
@@ -542,23 +559,24 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 
 		///
 
-		gl.glDeleteShader(glComputeShader);
-		glComputeShader = -1;
-
-		gl.glDeleteProgram(glComputeProgram);
-		glComputeProgram = -1;
-
-		gl.glDeleteShader(glSmallComputeShader);
-		glSmallComputeShader = -1;
-
-		gl.glDeleteProgram(glSmallComputeProgram);
-		glSmallComputeProgram = -1;
-
-		gl.glDeleteShader(glUnorderedComputeShader);
-		glUnorderedComputeShader = -1;
-
-		gl.glDeleteProgram(glUnorderedComputeProgram);
-		glUnorderedComputeProgram = -1;
+//		TODO: deal with this
+//		gl.glDeleteShader(glComputeShader);
+//		glComputeShader = -1;
+//
+//		gl.glDeleteProgram(glComputeProgram);
+//		glComputeProgram = -1;
+//
+//		gl.glDeleteShader(glSmallComputeShader);
+//		glSmallComputeShader = -1;
+//
+//		gl.glDeleteProgram(glSmallComputeProgram);
+//		glSmallComputeProgram = -1;
+//
+//		gl.glDeleteShader(glUnorderedComputeShader);
+//		glUnorderedComputeShader = -1;
+//
+//		gl.glDeleteProgram(glUnorderedComputeProgram);
+//		glUnorderedComputeProgram = -1;
 
 		///
 
@@ -938,56 +956,57 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 		final TextureProvider textureProvider = client.getTextureProvider();
 		if (textureProvider != null && this.bufferId != -1)
 		{
-			gl.glUniformBlockBinding(glSmallComputeProgram, uniBlockSmall, 0);
-			gl.glUniformBlockBinding(glComputeProgram, uniBlockLarge, 0);
-
-			gl.glBindBufferBase(gl.GL_UNIFORM_BUFFER, 0, uniformBufferId);
-
-			/*
-			 * Compute is split into two separate programs 'small' and 'large' to
-			 * save on GPU resources. Small will sort <= 512 faces, large will do <= 4096.
-			 */
-
-			// unordered
-			gl.glUseProgram(glUnorderedComputeProgram);
-
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 0, modelBufferUnorderedId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 1, this.bufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 2, bufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 3, outBufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 4, outUvBufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 5, this.uvBufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 6, uvBufferId);
-
-			gl.glDispatchCompute(unorderedModels, 1, 1);
-
-			// small
-			gl.glUseProgram(glSmallComputeProgram);
-
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 0, modelBufferSmallId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 1, this.bufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 2, bufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 3, outBufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 4, outUvBufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 5, this.uvBufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 6, uvBufferId);
-
-			gl.glDispatchCompute(smallModels, 1, 1);
-
-			// large
-			gl.glUseProgram(glComputeProgram);
-
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 0, modelBufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 1, this.bufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 2, bufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 3, outBufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 4, outUvBufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 5, this.uvBufferId);
-			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 6, uvBufferId);
-
-			gl.glDispatchCompute(largeModels, 1, 1);
-
-			gl.glMemoryBarrier(gl.GL_SHADER_STORAGE_BARRIER_BIT);
+//			TODO: deal with this
+//			gl.glUniformBlockBinding(glSmallComputeProgram, uniBlockSmall, 0);
+//			gl.glUniformBlockBinding(glComputeProgram, uniBlockLarge, 0);
+//
+//			gl.glBindBufferBase(gl.GL_UNIFORM_BUFFER, 0, uniformBufferId);
+//
+//			/*
+//			 * Compute is split into two separate programs 'small' and 'large' to
+//			 * save on GPU resources. Small will sort <= 512 faces, large will do <= 4096.
+//			 */
+//
+//			// unordered
+//			gl.glUseProgram(glUnorderedComputeProgram);
+//
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 0, modelBufferUnorderedId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 1, this.bufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 2, bufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 3, outBufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 4, outUvBufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 5, this.uvBufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 6, uvBufferId);
+//
+//			gl.glDispatchCompute(unorderedModels, 1, 1);
+//
+//			// small
+//			gl.glUseProgram(glSmallComputeProgram);
+//
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 0, modelBufferSmallId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 1, this.bufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 2, bufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 3, outBufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 4, outUvBufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 5, this.uvBufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 6, uvBufferId);
+//
+//			gl.glDispatchCompute(smallModels, 1, 1);
+//
+//			// large
+//			gl.glUseProgram(glComputeProgram);
+//
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 0, modelBufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 1, this.bufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 2, bufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 3, outBufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 4, outUvBufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 5, this.uvBufferId);
+//			gl.glBindBufferBase(gl.GL_SHADER_STORAGE_BUFFER, 6, uvBufferId);
+//
+//			gl.glDispatchCompute(largeModels, 1, 1);
+//
+//			gl.glMemoryBarrier(gl.GL_SHADER_STORAGE_BARRIER_BIT);
 
 			if (textureArrayId == -1)
 			{
