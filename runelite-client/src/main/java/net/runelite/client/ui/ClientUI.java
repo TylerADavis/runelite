@@ -26,23 +26,12 @@ package net.runelite.client.ui;
 
 import com.google.common.base.Strings;
 import java.applet.Applet;
-import java.awt.Canvas;
-import java.awt.CardLayout;
-import java.awt.Component;
-import java.awt.Container;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.GraphicsConfiguration;
-import java.awt.LayoutManager;
-import java.awt.Rectangle;
-import java.awt.Toolkit;
-import java.awt.TrayIcon;
+import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -57,6 +46,15 @@ import static javax.swing.JOptionPane.INFORMATION_MESSAGE;
 import javax.swing.JPanel;
 import javax.swing.JRootPane;
 import javax.swing.SwingUtilities;
+
+import com.thizzer.jtouchbar.JTouchBar;
+import com.thizzer.jtouchbar.common.Image;
+import com.thizzer.jtouchbar.common.ImageName;
+import com.thizzer.jtouchbar.item.TouchBarItem;
+import com.thizzer.jtouchbar.item.view.TouchBarButton;
+import com.thizzer.jtouchbar.item.view.TouchBarTextField;
+import com.thizzer.jtouchbar.item.view.TouchBarView;
+import com.thizzer.jtouchbar.item.view.action.TouchBarViewAction;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -508,7 +506,80 @@ public class ClientUI
 				frame.setLocationRelativeTo(frame.getOwner());
 			}
 
+			JTouchBar jTouchBar = new JTouchBar();
+			jTouchBar.setCustomizationIdentifier("MySwingJavaTouchBar");
+//			// flexible space
+//			jTouchBar.addItem(new TouchBarItem(TouchBarItem.NSTouchBarItemIdentifierFlexibleSpace));
+//
+//			// fixed space
+//			jTouchBar.addItem(new TouchBarItem(TouchBarItem.NSTouchBarItemIdentifierFixedSpaceSmall));
+
+			// Text Field
+//			TouchBarTextField touchBarTextField = new TouchBarTextField();
+//			touchBarTextField.setStringValue("Runescape!");
+//			jTouchBar.addItem(new TouchBarItem("TextField_1", touchBarTextField, true));
+
+			// Button
+//			TouchBarButton touchBarButtonImg = new TouchBarButton();
+////			touchBarButtonImg.setTitle("Button 1");
+//			touchBarButtonImg.setAction(new TouchBarViewAction()
+//			{
+//				@Override
+//				public void onCall(TouchBarView view)
+//				{
+//					System.out.println("Clicked Button_1.");
+//				}
+//			});
+//
+////			Image image = new Image( ImageName.NSImageNameTouchBarColorPickerFill, false);
+////			touchBarButtonImg.setImage(image);
+////			Image image = new Image("/runelite.png", true);
+////			image.setName(ImageName.NSImageNameTouchBarColorPickerFill);
+//
+//			try
+//			{
+////				Image image = new Image(ClientUI.class.getResourceAsStream("/runelite.png"));
+//				Image image = new Image(ClientUI.class.getResourceAsStream("/net/runelite/client/plugins/interfacestyles/2005/168.png"));
+//				touchBarButtonImg.setImage(image);
+//			}
+//			catch (IOException e)
+//			{
+//				throw new RuntimeException("/runelite.png", e);
+//			}
+//
+//			jTouchBar.addItem(new TouchBarItem("Button_1", touchBarButtonImg, true));
+
+			for (int i = 0; i < 12; i++)
+			{
+				TouchBarButton touchBarButtonImg = new TouchBarButton();
+				touchBarButtonImg.setTitle(Integer.toString(i));
+				touchBarButtonImg.setType(TouchBarButton.ButtonType.TOGGLE);
+				touchBarButtonImg.setAction(new TouchBarViewAction()
+				{
+					@Override
+					public void onCall(TouchBarView view)
+					{
+						System.out.println("Clicked Button_1.");
+					}
+				});
+
+				String myPath = "/net/runelite/client/plugins/interfacestyles/2005/168.png";
+				try
+				{
+//				Image image = new Image(ClientUI.class.getResourceAsStream("/runelite.png"));
+					Image image = new Image(ClientUI.class.getResourceAsStream(myPath));
+					touchBarButtonImg.setImage(image);
+				}
+				catch (IOException e)
+				{
+					throw new RuntimeException("myPath", e);
+				}
+
+				jTouchBar.addItem(new TouchBarItem(Integer.toString(i), touchBarButtonImg, true));
+			}
+
 			// Show frame
+			jTouchBar.show(frame);
 			frame.setVisible(true);
 			frame.toFront();
 			requestFocus();
