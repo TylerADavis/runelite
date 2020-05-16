@@ -24,10 +24,18 @@
  */
 package net.runelite.client.plugins.gpu;
 
+import static com.jogamp.opencl.CLDevice.Type.GPU;
+
 import com.google.common.primitives.Ints;
 import com.google.inject.Provides;
 import com.jogamp.nativewindow.awt.AWTGraphicsConfiguration;
 import com.jogamp.nativewindow.awt.JAWTWindow;
+import com.jogamp.opencl.CLCommandQueue;
+import com.jogamp.opencl.CLEventList;
+import com.jogamp.opencl.CLKernel;
+import com.jogamp.opencl.CLProgram;
+import com.jogamp.opencl.gl.CLGLBuffer;
+import com.jogamp.opencl.gl.CLGLContext;
 import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.GLCapabilities;
@@ -44,6 +52,7 @@ import java.awt.Image;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -170,6 +179,11 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 	private int glSmallComputeProgram;
 	private int glUnorderedComputeProgram;
 	private int glUiProgram;
+
+	private CLGLContext clContext;
+	private CLKernel kernel;
+	private CLCommandQueue commandQueue;
+	private CLGLBuffer<?> clBuffer;
 
 	private int vaoHandle;
 
@@ -348,6 +362,10 @@ public class GpuPlugin extends Plugin implements DrawCallbacks
 					{
 						jawtWindow.unlockSurface();
 					}
+
+					// create OpenCL context before creating any OpenGL objects
+					// you want to share with OpenCL (AMD driver requirement)
+					clContext = CLGLContext.create(glContext);
 
 					this.gl = glContext.getGL().getGL4();
 					gl.setSwapInterval(0);
